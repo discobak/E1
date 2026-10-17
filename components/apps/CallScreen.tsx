@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 import Icon, { IconName } from "../Icon";
-import { fmtNum, pad } from "../data";
+import { fmtNum } from "../data";
+import { pad } from "../hooks";
 
 const CONNECT_AFTER = 3; // segundos até "atender"
 
