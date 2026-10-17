@@ -11,6 +11,29 @@ export function useNow(interval = 1000) {
   return now;
 }
 
+/** Estado salvo no localStorage (carrega depois da montagem, sem quebrar o SSR). */
+export function useStored<T>(key: string, initial: T) {
+  const [value, setValue] = useState<T>(initial);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw) setValue(JSON.parse(raw));
+    } catch {}
+    setReady(true);
+  }, [key]);
+
+  useEffect(() => {
+    if (!ready) return;
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch {}
+  }, [value, key, ready]);
+
+  return [value, setValue, ready] as const;
+}
+
 export const pad = (n: number) => String(n).padStart(2, "0");
 
 export const WALLPAPERS = [

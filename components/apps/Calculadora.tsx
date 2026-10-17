@@ -1,5 +1,8 @@
 "use client";
 import { useState } from "react";
+import Icon from "../Icon";
+
+type Key = { label: string; fn: () => void; kind?: string; icon?: boolean };
 
 export default function Calculadora() {
   const [display, setDisplay] = useState("0");
@@ -11,6 +14,8 @@ export default function Calculadora() {
     o === "+" ? a + b : o === "−" ? a - b : o === "×" ? a * b : o === "÷" ? (b === 0 ? NaN : a / b) : b;
 
   const fmt = (n: number) => (Number.isNaN(n) ? "Erro" : String(parseFloat(n.toPrecision(10))));
+  const show = (n: number) => fmt(n).replace(".", ",");
+  const cur = () => parseFloat(display.replace(",", "."));
 
   const digit = (d: string) => {
     if (fresh) {
@@ -18,12 +23,10 @@ export default function Calculadora() {
       setFresh(false);
     } else {
       if (d === "," && display.includes(",")) return;
+      if (display.replace(/\D/g, "").length >= 12) return;
       setDisplay(display === "0" && d !== "," ? d : display + d);
     }
   };
-
-  const cur = () => parseFloat(display.replace(",", "."));
-  const show = (n: number) => fmt(n).replace(".", ",");
 
   const operator = (o: string) => {
     const c = cur();
@@ -38,8 +41,7 @@ export default function Calculadora() {
 
   const equals = () => {
     if (prev === null || !op) return;
-    const r = calc(prev, cur(), op);
-    setDisplay(show(r));
+    setDisplay(show(calc(prev, cur(), op)));
     setPrev(null);
     setOp(null);
     setFresh(true);
@@ -52,21 +54,36 @@ export default function Calculadora() {
     setFresh(true);
   };
 
-  const rows: [string, () => void, string?][][] = [
-    [["C", clear, "fn"], ["±", () => setDisplay(show(-cur())), "fn"], ["%", () => setDisplay(show(cur() / 100)), "fn"], ["÷", () => operator("÷"), "op"]],
-    [["7", () => digit("7")], ["8", () => digit("8")], ["9", () => digit("9")], ["×", () => operator("×"), "op"]],
-    [["4", () => digit("4")], ["5", () => digit("5")], ["6", () => digit("6")], ["−", () => operator("−"), "op"]],
-    [["1", () => digit("1")], ["2", () => digit("2")], ["3", () => digit("3")], ["+", () => operator("+"), "op"]],
-    [["0", () => digit("0")], [",", () => digit(",")], ["⌫", () => setDisplay(display.length > 1 && !fresh ? display.slice(0, -1) : "0"), "fn"], ["=", equals, "op"]],
+  const keys: Key[] = [
+    { label: "C", fn: clear, kind: "fn" },
+    { label: "±", fn: () => setDisplay(show(-cur())), kind: "fn" },
+    { label: "%", fn: () => setDisplay(show(cur() / 100)), kind: "fn" },
+    { label: "÷", fn: () => operator("÷"), kind: "op" },
+    { label: "7", fn: () => digit("7") },
+    { label: "8", fn: () => digit("8") },
+    { label: "9", fn: () => digit("9") },
+    { label: "×", fn: () => operator("×"), kind: "op" },
+    { label: "4", fn: () => digit("4") },
+    { label: "5", fn: () => digit("5") },
+    { label: "6", fn: () => digit("6") },
+    { label: "−", fn: () => operator("−"), kind: "op" },
+    { label: "1", fn: () => digit("1") },
+    { label: "2", fn: () => digit("2") },
+    { label: "3", fn: () => digit("3") },
+    { label: "+", fn: () => operator("+"), kind: "op" },
+    { label: "0", fn: () => digit("0") },
+    { label: ",", fn: () => digit(",") },
+    { label: "back", fn: () => setDisplay(display.length > 1 && !fresh ? display.slice(0, -1) : "0"), kind: "fn", icon: true },
+    { label: "=", fn: equals, kind: "op" },
   ];
 
   return (
     <div className="app calc">
-      <div className="calc-display">{display}</div>
+      <div className="calc-display" style={{ fontSize: display.length > 9 ? 42 : 64 }}>{display}</div>
       <div className="calc-keys">
-        {rows.flat().map(([label, fn, kind]) => (
-          <button key={label} className={kind ?? ""} onClick={fn}>
-            {label}
+        {keys.map((k) => (
+          <button key={k.label} className={(k.kind ?? "") + (op === k.label && fresh ? " active" : "")} onClick={k.fn}>
+            {k.icon ? <Icon name="backspace" size={26} /> : k.label}
           </button>
         ))}
       </div>

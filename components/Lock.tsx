@@ -1,6 +1,7 @@
 "use client";
 import { useRef, useState } from "react";
 import { useNow, pad, WALLPAPERS } from "./hooks";
+import Icon from "./Icon";
 
 const PASSWORD = "1234";
 const DAYS = ["domingo", "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado"];
@@ -13,6 +14,7 @@ export default function Lock({ wall, onUnlock }: { wall: number; onUnlock: () =>
   const [showPin, setShowPin] = useState(false);
   const [pin, setPin] = useState("");
   const [error, setError] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const startY = useRef(0);
 
   const down = (e: React.PointerEvent) => {
@@ -33,12 +35,15 @@ export default function Lock({ wall, onUnlock }: { wall: number; onUnlock: () =>
   };
 
   const press = (d: string) => {
-    if (error) return;
+    if (error || leaving) return;
     const next = (pin + d).slice(0, 4);
     setPin(next);
     if (next.length === 4) {
       if (next === PASSWORD) {
-        setTimeout(onUnlock, 150);
+        setTimeout(() => {
+          setLeaving(true);
+          setTimeout(onUnlock, 380);
+        }, 140);
       } else {
         setError(true);
         setTimeout(() => {
@@ -50,17 +55,22 @@ export default function Lock({ wall, onUnlock }: { wall: number; onUnlock: () =>
   };
 
   const keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
+  const translate = leaving ? "-100%" : `${dy}px`;
 
   return (
     <div
       className="lock"
-      style={{ background: WALLPAPERS[wall], transform: `translateY(${dy}px)`, transition: dragging ? "none" : "transform .25s" }}
+      style={{
+        background: WALLPAPERS[wall],
+        transform: `translateY(${translate})`,
+        transition: dragging ? "none" : "transform .38s cubic-bezier(.22,.9,.28,1)",
+      }}
       onPointerDown={down}
       onPointerMove={move}
       onPointerUp={up}
       onPointerCancel={up}
     >
-      <div className="lock-top">
+      <div className={"lock-top" + (showPin ? " small" : "")}>
         <div className="lock-date">
           {now ? `${DAYS[now.getDay()]}, ${now.getDate()} de ${MONTHS[now.getMonth()]}` : ""}
         </div>
@@ -69,7 +79,7 @@ export default function Lock({ wall, onUnlock }: { wall: number; onUnlock: () =>
 
       {!showPin ? (
         <button className="swipe" onClick={() => setShowPin(true)}>
-          <span className="swipe-arrow">⌃</span>
+          <Icon name="back" size={26} className="swipe-arrow" />
           <span>Deslize para cima para desbloquear</span>
         </button>
       ) : (
@@ -86,12 +96,19 @@ export default function Lock({ wall, onUnlock }: { wall: number; onUnlock: () =>
                 {k}
               </button>
             ))}
-            <button className="ghost" onClick={() => { setShowPin(false); setPin(""); }}>
-              ✕
+            <button
+              className="ghost"
+              aria-label="Cancelar"
+              onClick={() => {
+                setShowPin(false);
+                setPin("");
+              }}
+            >
+              <Icon name="x" size={22} />
             </button>
             <button onClick={() => press("0")}>0</button>
-            <button className="ghost" onClick={() => setPin((p) => p.slice(0, -1))}>
-              ⌫
+            <button className="ghost" aria-label="Apagar" onClick={() => setPin((p) => p.slice(0, -1))}>
+              <Icon name="backspace" size={24} />
             </button>
           </div>
         </div>

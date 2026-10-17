@@ -1,28 +1,14 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import Icon from "../Icon";
+import { useStored } from "../hooks";
+import { KEYS } from "../data";
 
 type Note = { id: number; text: string };
-const KEY = "celularweb:notas";
 
 export default function Notas() {
-  const [notes, setNotes] = useState<Note[]>([]);
+  const [notes, setNotes] = useStored<Note[]>(KEYS.notes, []);
   const [open, setOpen] = useState<number | null>(null);
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(KEY);
-      if (raw) setNotes(JSON.parse(raw));
-    } catch {}
-    setLoaded(true);
-  }, []);
-
-  useEffect(() => {
-    if (!loaded) return;
-    try {
-      localStorage.setItem(KEY, JSON.stringify(notes));
-    } catch {}
-  }, [notes, loaded]);
 
   const add = () => {
     const n = { id: Date.now(), text: "" };
@@ -34,10 +20,25 @@ export default function Notas() {
 
   if (current) {
     return (
-      <div className="app light">
+      <div className="app light push">
         <div className="appbar">
-          <button onClick={() => { if (!current.text.trim()) setNotes(notes.filter((n) => n.id !== current.id)); setOpen(null); }}>‹ Notas</button>
-          <button onClick={() => { setNotes(notes.filter((n) => n.id !== current.id)); setOpen(null); }}>🗑</button>
+          <button
+            onClick={() => {
+              if (!current.text.trim()) setNotes(notes.filter((n) => n.id !== current.id));
+              setOpen(null);
+            }}
+          >
+            <Icon name="back" size={22} /> <span className="txt">Notas</span>
+          </button>
+          <button
+            aria-label="Excluir nota"
+            onClick={() => {
+              setNotes(notes.filter((n) => n.id !== current.id));
+              setOpen(null);
+            }}
+          >
+            <Icon name="trash" size={22} />
+          </button>
         </div>
         <textarea
           autoFocus
@@ -54,10 +55,10 @@ export default function Notas() {
     <div className="app light">
       <div className="appbar">
         <h2>Notas</h2>
-        <button onClick={add}>＋</button>
+        <button onClick={add} aria-label="Nova nota"><Icon name="plus" size={24} /></button>
       </div>
       <div className="list">
-        {notes.length === 0 && <div className="muted pad">Nenhuma nota. Toque em ＋ para criar.</div>}
+        {notes.length === 0 && <div className="empty">Nenhuma nota. Toque em + para criar.</div>}
         {notes.map((n) => (
           <button key={n.id} className="list-item" onClick={() => setOpen(n.id)}>
             <b>{n.text.split("\n")[0] || "Nova nota"}</b>
