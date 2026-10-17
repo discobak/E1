@@ -376,3 +376,35 @@ svg { display: block; flex-shrink: 0; }
 .cp-slider input::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 6px rgba(0, 0, 0, .5); }
 .cp-slider input::-moz-range-thumb { width: 22px; height: 22px; border: 0; border-radius: 50%; background: #fff; }
 .cp-grab { align-self: center; width: 44px; height: 5px; border-radius: 3px; background: rgba(255, 255, 255, .4); margin-top: 2px; }
+
+/* May: bloqueio + glitch */
+.block-note { align-self: center; margin-top: 14px; display: flex; flex-direction: column; align-items: center; gap: 10px; color: #777; font-size: 13px; text-align: center; animation: fadeup .3s; }
+.block-note button { padding: 8px 20px; border-radius: 18px; background: #e2e4e9; color: #2563eb; font-weight: 600; font-size: 14px; transition: transform .12s; }
+.block-note button:active { transform: scale(.94); }
+.chat-input.blurred { filter: blur(4px); pointer-events: none; user-select: none; opacity: .8; }
+.app.chat { position: relative; overflow: hidden; }
+.app.glitching .chat-body { animation: glitchshake .9s steps(1) forwards; }
+.app.glitching .chat-bar, .app.glitching .chat-input { animation: glitchshake .9s steps(1) forwards reverse; }
+.glitch-overlay { position: absolute; inset: 0; z-index: 30; pointer-events: none; mix-blend-mode: difference;
+  background: repeating-linear-gradient(0deg, rgba(255,0,80,.35) 0 3px, rgba(0,255,255,.35) 3px 6px, transparent 6px 9px);
+  animation: glitchbars .9s steps(1) forwards; }
+@keyframes glitchshake {
+  0% { transform: translate(0,0); filter: none }
+  10% { transform: translate(-8px,2px) skewX(8deg); filter: hue-rotate(90deg) saturate(4) }
+  20% { transform: translate(10px,-3px); filter: invert(1) }
+  30% { transform: translate(-4px,5px) skewX(-10deg); filter: hue-rotate(250deg) contrast(2) }
+  40% { transform: translate(6px,0) scaleY(1.04); filter: none; clip-path: inset(10% 0 55% 0) }
+  50% { transform: translate(-12px,-2px); filter: invert(1) hue-rotate(180deg); clip-path: inset(0) }
+  60% { transform: translate(3px,4px) skewX(6deg); filter: saturate(6) }
+  70% { transform: translate(-6px,0); filter: hue-rotate(40deg); clip-path: inset(40% 0 20% 0) }
+  80% { transform: translate(9px,-4px); filter: invert(1); clip-path: inset(0) }
+  90% { transform: translate(-2px,1px); filter: contrast(3) }
+  100% { transform: translate(0,0); filter: none; opacity: 1 }
+}
+@keyframes glitchbars {
+  0% { opacity: 1; transform: translateY(0) }
+  25% { opacity: .4; transform: translateY(-14px) }
+  50% { opacity: 1; transform: translateY(9px) }
+  75% { opacity: .5; transform: translateY(-5px) }
+  100% { opacity: 0 }
+}
