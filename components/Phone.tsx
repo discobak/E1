@@ -22,6 +22,42 @@ type Win = {
 };
 
 const CLOSE_MS = 400;
+
+/** Estalo + chiado de curto-circuito, gerado na hora. */
+function crashSound() {
+  try {
+    const AC = window.AudioContext || (window as any).webkitAudioContext;
+    const ctx = new AC();
+    const dur = 2.2;
+    const buf = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) {
+      const t = i / d.length;
+      const pop = i < 3000 ? 1 : 0;
+      d[i] = (Math.random() * 2 - 1) * (pop * 0.9 + 0.25 * (1 - t) * (Math.random() < 0.6 ? 1 : 0.2));
+    }
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const f = ctx.createBiquadFilter();
+    f.type = "highpass";
+    f.frequency.value = 2500;
+    const g = ctx.createGain();
+    g.gain.value = 0.3;
+    const o = ctx.createOscillator();
+    o.type = "sine";
+    o.frequency.setValueAtTime(600, ctx.currentTime + 0.1);
+    o.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.8);
+    const og = ctx.createGain();
+    og.gain.setValueAtTime(0.25, ctx.currentTime + 0.1);
+    og.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.8);
+    src.connect(f).connect(g).connect(ctx.destination);
+    o.connect(og).connect(ctx.destination);
+    src.start();
+    o.start();
+    o.stop(ctx.currentTime + 0.9);
+    setTimeout(() => ctx.close(), dur * 1000 + 200);
+  } catch {}
+}
 const SPAN = 300; // distância (px) de arrasto para abrir o painel por completo
 const EDGE = 36; // faixa no topo que puxa o painel mesmo dentro de um app
 
@@ -32,6 +68,8 @@ export default function Phone() {
   const [brightness, setBrightness] = useState(100);
   const [sys, setSys] = useState<Sys>(DEFAULT_SYS);
   const [scale, setScale] = useState(1);
+  const [smoke, setSmoke] = useState(false);
+  const [crashing, setCrashing] = useState(false);
 
   // painel de controle: p = 0 (fechado) .. 1 (aberto)
   const [p, setP] = useState(0);
@@ -54,6 +92,31 @@ export default function Phone() {
     fit();
     window.addEventListener("resize", fit);
     return () => window.removeEventListener("resize", fit);
+  }, []);
+
+  // o app de mensagens (May) manda o celular "pifar": fumaça + desliga
+  useEffect(() => {
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const onCrash = () => {
+      if (closing.current) clearTimeout(closing.current);
+      setCrashing(true);
+      setSmoke(true);
+      crashSound();
+      timers.push(
+        setTimeout(() => {
+          setCrashing(false);
+          setWin(null);
+          setPanel(0);
+          setStage("off");
+        }, 700),
+        setTimeout(() => setSmoke(false), 5500)
+      );
+    };
+    window.addEventListener("celular:crash", onCrash);
+    return () => {
+      window.removeEventListener("celular:crash", onCrash);
+      timers.forEach(clearTimeout);
+    };
   }, []);
 
   // boot -> tela de bloqueio
@@ -177,7 +240,7 @@ export default function Phone() {
 
   return (
     <div className="phone-wrap" style={{ transform: `scale(${scale})` }}>
-      <div className="phone">
+      <div className={"phone" + (crashing ? " crashing" : "")}>
         <button className="btn-side btn-vol1" aria-label="Volume +" onClick={() => setSys((s) => ({ ...s, volume: Math.min(100, s.volume + 10) }))} />
         <button className="btn-side btn-vol2" aria-label="Volume -" onClick={() => setSys((s) => ({ ...s, volume: Math.max(0, s.volume - 10) }))} />
         <button className="btn-side btn-power" aria-label="Ligar / desligar" onClick={power} />
@@ -266,6 +329,24 @@ export default function Phone() {
             <div className="dim" style={{ opacity: ((100 - brightness) / 100) * 0.75 }} />
           )}
         </div>
+
+        {smoke && (
+          <div className="smoke" aria-hidden>
+            {Array.from({ length: 14 }).map((_, i) => (
+              <i
+                key={i}
+                style={{
+                  left: `${8 + ((i * 37) % 80)}%`,
+                  animationDelay: `${(i % 7) * 0.35}s`,
+                  animationDuration: `${2.6 + (i % 4) * 0.5}s`,
+                  width: `${70 + (i % 5) * 20}px`,
+                  height: `${70 + (i % 5) * 20}px`,
+                  ["--dx" as string]: `${((i % 5) - 2) * 28}px`,
+                }}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

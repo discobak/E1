@@ -81,11 +81,29 @@ export default function Mensagens() {
   const [typing, setTyping] = useState(false);
   const [unblocked, setUnblocked] = useStored<boolean>(MAY_KEY, false);
   const [glitch, setGlitch] = useState(false);
+  const [entering, setEntering] = useState(false);
   const end = useRef<HTMLDivElement>(null);
 
   const isMay = open === MAY_ID;
   const blocked = isMay && !unblocked;
   const thread = open ? (isMay ? [...MAY_MSGS, ...(msgs[MAY_ID] ?? [])] : msgs[open] ?? []) : [];
+
+  // depois de desbloqueada, a May fica "bugada": entrar na conversa dispara glitch de novo
+  const openThread = (id: string) => {
+    if (id === MAY_ID && unblocked) {
+      if (entering) return;
+      setEntering(true);
+      glitchSound();
+      setTimeout(() => {
+        setOpen(id);
+        setPicking(false);
+        setEntering(false);
+      }, 900);
+      return;
+    }
+    setOpen(id);
+    setPicking(false);
+  };
 
   const unblock = () => {
     if (glitch) return;
@@ -94,6 +112,7 @@ export default function Mensagens() {
     setTimeout(() => {
       setUnblocked(true);
       setGlitch(false);
+      window.dispatchEvent(new Event("celular:crash"));
     }, 900);
   };
   useEffect(() => {
@@ -122,7 +141,8 @@ export default function Mensagens() {
 
   if (picking) {
     return (
-      <div className="app light push">
+      <div className={"app light push" + (entering ? " glitching" : "")}>
+        {entering && <div className="glitch-overlay" />}
         <div className="appbar">
           <button onClick={() => setPicking(false)} aria-label="Voltar"><Icon name="back" size={24} /></button>
           <h2>Nova mensagem</h2>
@@ -133,10 +153,7 @@ export default function Mensagens() {
             <button
               key={c.id}
               className="row-item"
-              onClick={() => {
-                setOpen(c.id);
-                setPicking(false);
-              }}
+              onClick={() => openThread(c.id)}
             >
               <span className="avatar">{c.name.charAt(0)}</span>
               <span className="row-main"><b>{c.name}</b></span>
@@ -149,7 +166,7 @@ export default function Mensagens() {
 
   if (open && who) {
     return (
-      <div className={"app light chat push" + (glitch ? " glitching" : "")}>
+      <div className={"app light chat push" + (glitch ? " glitching" : "") + (isMay && unblocked ? " buggy" : "")}>
         <div className="appbar chat-bar">
           <button onClick={() => setOpen(null)} aria-label="Voltar"><Icon name="back" size={24} /></button>
           <span className="avatar sm">{who.name.charAt(0)}</span>
@@ -188,7 +205,8 @@ export default function Mensagens() {
   ids.sort((a, b) => all[b][all[b].length - 1].time - all[a][all[a].length - 1].time);
 
   return (
-    <div className="app light">
+    <div className={"app light" + (entering ? " glitching" : "")}>
+      {entering && <div className="glitch-overlay" />}
       <div className="appbar">
         <h2>Mensagens</h2>
         <button onClick={() => setPicking(true)} aria-label="Nova mensagem"><Icon name="edit" size={22} /></button>
@@ -199,7 +217,7 @@ export default function Mensagens() {
           const c = allContacts.find((x) => x.id === id)!;
           const last = all[id][all[id].length - 1];
           return (
-            <button key={id} className="row-item" onClick={() => setOpen(id)}>
+            <button key={id} className={"row-item" + (id === MAY_ID && unblocked ? " buggy" : "")} onClick={() => openThread(id)}>
               <span className="avatar">{c.name.charAt(0)}</span>
               <span className="row-main">
                 <b>{c.name}</b>
