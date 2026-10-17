@@ -3,8 +3,10 @@ import { useEffect, useRef, useState } from "react";
 import Lock from "./Lock";
 import Home from "./Home";
 import StatusBar from "./StatusBar";
+import ControlPanel from "./ControlPanel";
 import Icon from "./Icon";
 import { WALLPAPERS } from "./hooks";
+import { DEFAULT_SYS, Sys } from "./sys";
 import { APPS, AppId } from "./apps";
 
 type Stage = "off" | "boot" | "lock" | "home";
@@ -19,17 +21,32 @@ type Win = {
   sh: number;
 };
 
-const OPEN_MS = 460;
 const CLOSE_MS = 400;
+const SPAN = 300; // distância (px) de arrasto para abrir o painel por completo
+const EDGE = 36; // faixa no topo que puxa o painel mesmo dentro de um app
 
 export default function Phone() {
   const [stage, setStage] = useState<Stage>("off");
   const [win, setWin] = useState<Win | null>(null);
   const [wall, setWall] = useState(0);
   const [brightness, setBrightness] = useState(100);
+  const [sys, setSys] = useState<Sys>(DEFAULT_SYS);
   const [scale, setScale] = useState(1);
+
+  // painel de controle: p = 0 (fechado) .. 1 (aberto)
+  const [p, setP] = useState(0);
+  const [drag, setDrag] = useState(false);
+  const pRef = useRef(0);
+  const g = useRef({ y: 0, active: false, captured: false, from: 0 });
+  const suppress = useRef(false);
+
   const screenRef = useRef<HTMLDivElement>(null);
   const closing = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const setPanel = (v: number) => {
+    pRef.current = v;
+    setP(v);
+  };
 
   // escala o celular para caber na janela
   useEffect(() => {
@@ -46,9 +63,10 @@ export default function Phone() {
     return () => clearTimeout(t);
   }, [stage]);
 
-  const openApp = (id: AppId, iconEl: HTMLElement) => {
+  const openApp = (id: AppId, iconEl: HTMLElement, force = false) => {
     const screen = screenRef.current;
-    if (!screen || win) return;
+    if (!screen || (win && !force)) return;
+    if (closing.current) clearTimeout(closing.current);
     const sr = screen.getBoundingClientRect();
     const ir = iconEl.getBoundingClientRect();
     const k = screen.offsetWidth / sr.width; // desfaz a escala do celular
@@ -74,14 +92,69 @@ export default function Phone() {
     closing.current = setTimeout(() => setWin(null), CLOSE_MS);
   };
 
+  const homeButton = () => {
+    if (pRef.current > 0) setPanel(0);
+    else closeApp();
+  };
+
   const power = () => {
     if (closing.current) clearTimeout(closing.current);
+    setPanel(0);
     if (stage === "off") setStage("boot");
     else if (stage === "lock") setStage("off");
     else if (stage === "home") {
       setWin(null);
       setStage("lock");
     }
+  };
+
+  // ===== gesto: arrastar para baixo abre o painel / para cima fecha =====
+  const k = () => {
+    const s = screenRef.current;
+    return s ? s.offsetWidth / s.getBoundingClientRect().width : 1;
+  };
+
+  const onDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    const s = screenRef.current;
+    if (!s || (win && win.phase !== "open")) return;
+    const target = e.target as HTMLElement;
+    if (target.closest("input")) return; // não atrapalha os sliders
+    const yRel = (e.clientY - s.getBoundingClientRect().top) * k();
+    const open = pRef.current > 0;
+    const allowed = open || !win || yRel < EDGE;
+    if (!allowed) return;
+    g.current = { y: e.clientY, active: true, captured: false, from: open ? 1 : 0 };
+  };
+
+  const onMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const st = g.current;
+    if (!st.active) return;
+    const dy = (e.clientY - st.y) * k();
+    if (!st.captured) {
+      if (Math.abs(dy) < 10) return;
+      const okDir = st.from === 0 ? dy > 0 : dy < 0;
+      if (!okDir) {
+        st.active = false;
+        return;
+      }
+      st.captured = true;
+      setDrag(true);
+      e.currentTarget.setPointerCapture(e.pointerId);
+    }
+    setPanel(Math.max(0, Math.min(1, st.from + dy / SPAN)));
+  };
+
+  const onUp = () => {
+    const st = g.current;
+    if (!st.active) return;
+    st.active = false;
+    if (!st.captured) return;
+    st.captured = false;
+    suppress.current = true;
+    setTimeout(() => (suppress.current = false), 60);
+    setDrag(false);
+    const v = pRef.current;
+    setPanel(st.from === 0 ? (v > 0.25 ? 1 : 0) : v < 0.75 ? 0 : 1);
   };
 
   const Current = win ? APPS[win.id].component : null;
@@ -105,8 +178,8 @@ export default function Phone() {
   return (
     <div className="phone-wrap" style={{ transform: `scale(${scale})` }}>
       <div className="phone">
-        <button className="btn-side btn-vol1" aria-label="Volume +" />
-        <button className="btn-side btn-vol2" aria-label="Volume -" />
+        <button className="btn-side btn-vol1" aria-label="Volume +" onClick={() => setSys((s) => ({ ...s, volume: Math.min(100, s.volume + 10) }))} />
+        <button className="btn-side btn-vol2" aria-label="Volume -" onClick={() => setSys((s) => ({ ...s, volume: Math.max(0, s.volume - 10) }))} />
         <button className="btn-side btn-power" aria-label="Ligar / desligar" onClick={power} />
 
         <div className="screen" ref={screenRef}>
@@ -132,13 +205,28 @@ export default function Phone() {
           )}
 
           {stage === "home" && (
-            <div className="os" style={{ background: WALLPAPERS[wall] }}>
-              <Home onOpen={openApp} behind={!!win && win.phase !== "exit"} />
+            <div
+              className="os"
+              style={{ background: WALLPAPERS[wall] }}
+              onPointerDown={onDown}
+              onPointerMove={onMove}
+              onPointerUp={onUp}
+              onPointerCancel={onUp}
+              onClickCapture={(e) => {
+                if (suppress.current) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }
+              }}
+            >
+              <Home onOpen={openApp} behind={(!!win && win.phase !== "exit") || p > 0} />
 
               {win && Current && (
                 <div className={"win " + win.phase} style={winStyle}>
                   <div className="win-content">
                     <Current
+                      sys={sys}
+                      setSys={setSys}
                       wall={wall}
                       setWall={setWall}
                       brightness={brightness}
@@ -148,8 +236,25 @@ export default function Phone() {
                 </div>
               )}
 
-              <StatusBar light={statusLight} />
-              <button className="home-bar" aria-label="Voltar ao início" onClick={closeApp}>
+              <StatusBar light={statusLight} sys={sys} />
+              <div className="edge" />
+
+              <ControlPanel
+                p={p}
+                drag={drag}
+                sys={sys}
+                setSys={setSys}
+                brightness={brightness}
+                setBrightness={setBrightness}
+                onClose={() => setPanel(0)}
+                onSettings={(el) => {
+                  setPanel(0);
+                  if (win?.id === "config") return;
+                  openApp("config", el, true);
+                }}
+              />
+
+              <button className="home-bar" aria-label="Voltar ao início" onClick={homeButton}>
                 <i className={statusLight || !win ? "" : "darkbar"} />
               </button>
             </div>

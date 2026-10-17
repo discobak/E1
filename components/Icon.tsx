@@ -263,6 +263,15 @@ const ICONS = {
       <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
     </>
   ),
+  moon: <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />,
+  zap: <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />,
+  flashlight: (
+    <>
+      <path d="M18 6L15 3H9L6 6v3h12V6z" />
+      <path d="M9 9v10a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2V9" />
+      <line x1="12" y1="13" x2="12" y2="15" />
+    </>
+  ),
 } satisfies Record<string, ReactNode>;
 
 export type IconName = keyof typeof ICONS;

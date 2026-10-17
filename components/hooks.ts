@@ -37,6 +37,7 @@ export function useStored<T>(key: string, initial: T) {
 export const pad = (n: number) => String(n).padStart(2, "0");
 
 export const WALLPAPERS = [
+  "linear-gradient(160deg,#3b3b40,#1a1a1d 55%,#08080a)",
   "linear-gradient(160deg,#1e3a8a,#7c3aed 55%,#ec4899)",
   "linear-gradient(160deg,#0f172a,#0e7490 60%,#34d399)",
   "linear-gradient(160deg,#7f1d1d,#ea580c 55%,#fbbf24)",
