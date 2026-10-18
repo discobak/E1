@@ -14,6 +14,7 @@ import Calendario from "./Calendario";
 import Notas from "./Notas";
 import Clima from "./Clima";
 import Config from "./Config";
+import Gravador from "./Gravador";
 
 export type AppProps = {
   sys: Sys;
@@ -36,6 +37,7 @@ export type AppId =
   | "calendario"
   | "notas"
   | "clima"
+  | "gravador"
   | "config";
 
 type AppDef = {
@@ -61,5 +63,6 @@ export const APPS: Record<AppId, AppDef> = {
   calendario: { name: "Calendário", icon: "calendar", grad: ICON_BG, bg: "#f6f7fb", dark: false, component: Calendario },
   notas: { name: "Notas", icon: "note", grad: ICON_BG, bg: "#f6f7fb", dark: false, component: Notas },
   clima: { name: "Clima", icon: "cloud", grad: ICON_BG, bg: "#1e3a8a", dark: true, component: Clima },
+  gravador: { name: "Gravador", icon: "mic", grad: ICON_BG, bg: "#0b0b0d", dark: true, component: Gravador },
   config: { name: "Ajustes", icon: "sliders", grad: ICON_BG, bg: "#f6f7fb", dark: false, component: Config },
 };
