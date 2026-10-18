@@ -247,7 +247,6 @@ const ICONS = {
     </>
   ),
   navigate: <polygon points="3 11 22 2 13 21 11 13 3 11" />,
-  minus: <line x1="5" y1="12" x2="19" y2="12" />,
   mic: (
     <>
       <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
