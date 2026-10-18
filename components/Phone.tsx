@@ -67,6 +67,19 @@ export default function Phone() {
   const [wall, setWall] = useState(0);
   const [brightness, setBrightness] = useState(100);
   const [sys, setSys] = useState<Sys>(DEFAULT_SYS);
+
+  // tema (escuro por padrão) fica salvo no navegador
+  useEffect(() => {
+    try {
+      const t = localStorage.getItem("celularweb:tema");
+      if (t === "claro") setSys((s) => ({ ...s, dark: false }));
+    } catch {}
+  }, []);
+  useEffect(() => {
+    try {
+      localStorage.setItem("celularweb:tema", sys.dark ? "escuro" : "claro");
+    } catch {}
+  }, [sys.dark]);
   const [scale, setScale] = useState(1);
   const [smoke, setSmoke] = useState(false);
   const [crashing, setCrashing] = useState(false);
@@ -224,23 +237,24 @@ export default function Phone() {
 
   let winStyle: React.CSSProperties = {};
   if (win) {
+    const winBg = sys.dark && !APPS[win.id].dark ? "#0b0b0d" : APPS[win.id].bg;
     const sx = win.w / win.sw;
     const sy = win.h / win.sh;
     winStyle =
       win.phase === "open"
-        ? { transform: "translate(0px,0px) scale(1,1)", borderRadius: "44px / 44px", background: APPS[win.id].bg }
+        ? { transform: "translate(0px,0px) scale(1,1)", borderRadius: "44px / 44px", background: winBg }
         : {
             transform: `translate(${win.x}px,${win.y}px) scale(${sx},${sy})`,
             borderRadius: `${15 / sx}px / ${15 / sy}px`,
-            background: APPS[win.id].bg,
+            background: winBg,
           };
   }
 
-  const statusLight = !win || win.phase === "exit" ? true : APPS[win.id].dark;
+  const statusLight = !win || win.phase === "exit" ? true : sys.dark || APPS[win.id].dark;
 
   return (
     <div className="phone-wrap" style={{ transform: `scale(${scale})` }}>
-      <div className={"phone" + (crashing ? " crashing" : "")}>
+      <div className={"phone" + (crashing ? " crashing" : "") + (sys.dark ? " darkmode" : "")}>
         <button className="btn-side btn-vol1" aria-label="Volume +" onClick={() => setSys((s) => ({ ...s, volume: Math.min(100, s.volume + 10) }))} />
         <button className="btn-side btn-vol2" aria-label="Volume -" onClick={() => setSys((s) => ({ ...s, volume: Math.max(0, s.volume - 10) }))} />
         <button className="btn-side btn-power" aria-label="Ligar / desligar" onClick={power} />

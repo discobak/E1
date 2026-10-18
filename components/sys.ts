@@ -6,6 +6,7 @@ export type Sys = {
   flash: boolean;
   saver: boolean;
   rotate: boolean;
+  dark: boolean;
   volume: number;
 };
 
@@ -19,6 +20,7 @@ export const DEFAULT_SYS: Sys = {
   flash: false,
   saver: false,
   rotate: true,
+  dark: true,
   volume: 60,
 };
 

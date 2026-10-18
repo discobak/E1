@@ -24,6 +24,7 @@ export default function Config({ sys, setSys, wall, setWall, brightness, setBrig
     <div className="app light">
       <div className="appbar"><h2>Ajustes</h2></div>
       <div className="settings">
+        <Toggle icon="moon" color="#4f46e5" label="Modo escuro" k="dark" sys={sys} setSys={setSys} />
         <Toggle icon="plane" color="#f59e0b" label="Modo avião" k="plane" sys={sys} setSys={setSys} />
         <Toggle icon="wifi" color="#2563eb" label="Wi-Fi" k="wifi" sys={sys} setSys={setSys} />
         <Toggle icon="bluetooth" color="#0ea5e9" label="Bluetooth" k="bt" sys={sys} setSys={setSys} />
